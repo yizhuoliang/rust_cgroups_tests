@@ -45,7 +45,9 @@ fn disk_io_worker(worker_id: usize, read_enabled: Arc<AtomicBool>, write_enabled
         }
 
         if last_report.elapsed() >= Duration::from_secs(5) {
-            println!("Read Speed: {} bytes/sec, Write Speed: {} bytes/sec", read_bytes / 5, write_bytes / 5);
+            let read_speed_gbps = (read_bytes as f64) / 5.0 / 1_073_741_824.0;
+            let write_speed_gbps = (write_bytes as f64) / 5.0 / 1_073_741_824.0;
+            println!("Read Speed: {:.2} GB/s, Write Speed: {:.2} GB/s", read_speed_gbps, write_speed_gbps);
             read_bytes = 0;
             write_bytes = 0;
             last_report = Instant::now();
@@ -68,7 +70,7 @@ fn main() {
 
     // Create boolean flags for read and write operations, and a running flag
     let read_enabled = Arc::new(AtomicBool::new(true));
-    let write_enabled = Arc::new(AtomicBool::new(true));
+    let write_enabled = Arc::new(AtomicBool::new(false));
     let is_running = Arc::new(AtomicBool::new(true));
 
     // Spawn worker threads
@@ -83,7 +85,7 @@ fn main() {
     }
 
     // wait for 'q' every second to stop the program
-    println!("Press 'q' to stop the program...");
+    println!("Press 'q' and return to cleanup and terminate");
     loop {
         let mut input = String::new();
         match io::stdin().read_line(&mut input) {
