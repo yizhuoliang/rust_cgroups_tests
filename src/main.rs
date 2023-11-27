@@ -45,9 +45,9 @@ fn disk_io_worker(worker_id: usize, read_enabled: Arc<AtomicBool>, write_enabled
         }
 
         if last_report.elapsed() >= Duration::from_secs(5) {
-            let read_speed_gbps = (read_bytes as f64) / 5.0 / 1_073_741_824.0;
-            let write_speed_gbps = (write_bytes as f64) / 5.0 / 1_073_741_824.0;
-            println!("Read Speed: {:.2} GB/s, Write Speed: {:.2} GB/s", read_speed_gbps, write_speed_gbps);
+            let read_speed_mbps = (read_bytes as f64) / 5.0 / 1_048_576.0;
+            let write_speed_mbps = (write_bytes as f64) / 5.0 / 1_048_576.0;
+            println!("Read Speed: {:.2} MB/s, Write Speed: {:.2} MB/s", read_speed_mbps, write_speed_mbps);
             read_bytes = 0;
             write_bytes = 0;
             last_report = Instant::now();
