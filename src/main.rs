@@ -1,6 +1,6 @@
 use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use std::fs::{self, File, OpenOptions};
-use std::io::{self, Read, Write};
+use std::io::{self, Read, Write, Seek};
 use std::path::Path;
 use std::time::{Instant, Duration};
 use std::thread;
@@ -11,10 +11,15 @@ const NUMBER_OF_WORKERS: usize = 3;
 
 fn disk_setup() -> io::Result<()> {
     fs::create_dir(DIRECTORY)?;
+    let data_chunk = vec![0u8; 8 * 1024 * 1024]; // 8 MB chunk
     for worker_id in 0..NUMBER_OF_WORKERS {
         let file_name = format!("{}_{}", FILENAME, worker_id);
-        let mut file = File::create(Path::new(DIRECTORY).join(&file_name))?;
-        file.write_all(b"Initial data for disk I/O testing.\n")?;
+        let file_path = Path::new(DIRECTORY).join(&file_name);
+        let mut file = File::create(&file_path)?;
+
+        for _ in 0..16 { // Write 16 times 8 MB to make 128 MB
+            file.write_all(&data_chunk)?;
+        }
     }
     Ok(())
 }
@@ -23,17 +28,26 @@ fn disk_setup() -> io::Result<()> {
 // Function to simulate disk I/O operation
 fn disk_io_worker(worker_id: usize, read_enabled: Arc<AtomicBool>, write_enabled: Arc<AtomicBool>, is_running: Arc<AtomicBool>) {
     let file_name = format!("{}_{}", FILENAME, worker_id);
-    let file_path = Path::new(DIRECTORY).join(file_name);
+    let file_path = Path::new(DIRECTORY).join(&file_name);
     let mut read_bytes = 0;
     let mut write_bytes = 0;
     let mut last_report = Instant::now();
+    let mut read_position = 0;
 
     while is_running.load(Ordering::Relaxed) {
         if read_enabled.load(Ordering::Relaxed) {
             let mut file = File::open(&file_path).unwrap();
-            let mut buffer = [0; 1024];
-            if let Ok(bytes_read) = file.read(&mut buffer) {
-                read_bytes += bytes_read;
+            file.seek(io::SeekFrom::Start(read_position)).unwrap();
+            let mut buffer = vec![0; 8 * 1024 * 1024]; // 8 MB buffer
+            match file.read(&mut buffer) {
+                Ok(bytes_read) => {
+                    read_bytes += bytes_read;
+                    read_position += bytes_read as u64;
+                    if read_position >= 128 * 1024 * 1024 { // Reset after 128 MB
+                        read_position = 0;
+                    }
+                },
+                Err(_) => break,
             }
         }
 
