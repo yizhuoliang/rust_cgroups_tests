@@ -149,7 +149,7 @@ fn cpu_worker(worker_id: usize, is_running: Arc<AtomicBool>) {
 fn cpu_intensive_task() -> u64 {
     // Example of a CPU-intensive task (this is just a placeholder)
     let mut sum = 0;
-    for i in 0..100_000 {
+    for i in 0..2000000 {
         sum += i;
     }
     sum // Count this as one round
