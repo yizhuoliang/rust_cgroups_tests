@@ -78,52 +78,100 @@ fn disk_cleanup() -> io::Result<()> {
     Ok(())
 }
 
-fn main() {
-    // Set up the disk
-    disk_setup();
+fn disk_experiment() {
+     // Set up the disk
+     disk_setup();
 
-    // Create boolean flags for read and write operations, and a running flag
-    let read_enabled = Arc::new(AtomicBool::new(true));
-    let write_enabled = Arc::new(AtomicBool::new(false));
+     // Create boolean flags for read and write operations, and a running flag
+     let read_enabled = Arc::new(AtomicBool::new(true));
+     let write_enabled = Arc::new(AtomicBool::new(false));
+     let is_running = Arc::new(AtomicBool::new(true));
+ 
+     // Spawn worker threads
+     let mut handles = vec![];
+     for worker_id in 0..NUMBER_OF_WORKERS {
+         let read_clone = Arc::clone(&read_enabled);
+         let write_clone = Arc::clone(&write_enabled);
+         let running_clone = Arc::clone(&is_running);
+         handles.push(thread::spawn(move || {
+             disk_io_worker(worker_id, read_clone, write_clone, running_clone);
+         }));
+     }
+ 
+     // wait for 'q' every second to stop the program
+     println!("Press 'q' and return to cleanup and terminate");
+     loop {
+         let mut input = String::new();
+         match io::stdin().read_line(&mut input) {
+             Ok(_) => {
+                 if input.trim() == "q" {
+                     break;
+                 }
+             },
+             Err(error) => println!("Error reading from stdin: {:?}", error),
+         }
+         // Sleep for 1 second before the next iteration
+         thread::sleep(Duration::from_secs(1));
+     }
+ 
+     // set running flag to false to stop the worker threads
+     is_running.store(false, Ordering::Relaxed);
+ 
+     // wait for the threads to finish
+     for handle in handles {
+         handle.join().unwrap();
+     }
+ 
+     // Clean up the disk before exiting
+     disk_cleanup();
+ 
+     println!("Program exited cleanly.");
+}
+
+fn cpu_worker(worker_id: usize, is_running: Arc<AtomicBool>) {
+    let mut rounds = 0u64;
+    let mut last_report = Instant::now();
+
+    while is_running.load(Ordering::Relaxed) {
+        // Perform a CPU-intensive task
+        cpu_intensive_task();
+        rounds += 1;
+
+        // Check if it's time to report
+        if last_report.elapsed() >= Duration::from_secs(5) {
+            println!("Worker {}: {} rounds of computation in last 5 seconds", worker_id, rounds);
+            rounds = 0;
+            last_report = Instant::now();
+        }
+    }
+}
+
+fn cpu_intensive_task() -> u64 {
+    // Example of a CPU-intensive task (this is just a placeholder)
+    let mut sum = 0;
+    for i in 0..100_000 {
+        sum += i;
+    }
+    sum // Count this as one round
+}
+
+fn cpu_experiment() {
     let is_running = Arc::new(AtomicBool::new(true));
 
-    // Spawn worker threads
-    let mut handles = vec![];
-    for worker_id in 0..NUMBER_OF_WORKERS {
-        let read_clone = Arc::clone(&read_enabled);
-        let write_clone = Arc::clone(&write_enabled);
-        let running_clone = Arc::clone(&is_running);
-        handles.push(thread::spawn(move || {
-            disk_io_worker(worker_id, read_clone, write_clone, running_clone);
-        }));
-    }
+    // Start the worker
+    let is_running_clone = Arc::clone(&is_running);
+    let worker_thread = thread::spawn(move || {
+        cpu_worker(1, is_running_clone);
+    });
 
-    // wait for 'q' every second to stop the program
-    println!("Press 'q' and return to cleanup and terminate");
-    loop {
-        let mut input = String::new();
-        match io::stdin().read_line(&mut input) {
-            Ok(_) => {
-                if input.trim() == "q" {
-                    break;
-                }
-            },
-            Err(error) => println!("Error reading from stdin: {:?}", error),
-        }
-        // Sleep for 1 second before the next iteration
-        thread::sleep(Duration::from_secs(1));
-    }
+    // Let the worker run for some time...
+    thread::sleep(Duration::from_secs(20));
 
-    // set running flag to false to stop the worker threads
+    // Stop the worker
     is_running.store(false, Ordering::Relaxed);
+    worker_thread.join().unwrap();
+}
 
-    // wait for the threads to finish
-    for handle in handles {
-        handle.join().unwrap();
-    }
-
-    // Clean up the disk before exiting
-    disk_cleanup();
-
-    println!("Program exited cleanly.");
+fn main() {
+   cpu_experiment();
 }
