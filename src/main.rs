@@ -117,7 +117,7 @@ fn test1() {
             let start = Instant::now();
 
             // perform some CPU intensive work
-            do_computation();
+            do_computation(0);
 
             println!("Thread {} in cgroup finished work in {:?}", i, start.elapsed());
         })
@@ -128,7 +128,7 @@ fn test1() {
         let start = Instant::now();
 
         // perform the same cpu intensive work
-        do_computation();
+        do_computation(0);
 
         println!("Thread outside cgroup finished work in {:?}", start.elapsed());
     });
