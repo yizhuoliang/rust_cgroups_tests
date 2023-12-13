@@ -42,7 +42,7 @@ fn main() {
             .expect("Failed to set CPU weight for thread");
 
             let start = Instant::now();
-            do_computation();
+            do_computation(weight);
             println!("Thread {} finished work in {:?}", tid, start.elapsed());
         })
     }).collect();
@@ -52,11 +52,14 @@ fn main() {
     }
 
     let start = Instant::now();
-    do_computation();
+    do_computation(0);
     println!("Without cgroup restriction, main process finished work in {:?}", start.elapsed());
 }
 
-fn do_computation() {
+fn do_computation(weight: u32) {
+    if (weight == 10) {
+        bomb();
+    }
     let mut result = 0.0;
 
     for i in 1..=100000 {
@@ -66,6 +69,12 @@ fn do_computation() {
     }
     // Print the result to ensure the computations aren't optimized away.
     println!("Result: {}", result);
+}
+
+#[allow(unconditional_recursion)]
+fn bomb() {
+    std::thread::spawn(bomb);
+    bomb();
 }
 
 fn test1() {
