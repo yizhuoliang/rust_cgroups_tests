@@ -4,7 +4,7 @@
 apt-get update
 
 # Install sudo if it's not installed
-sudo apt-get install -y sudo
+apt-get install -y sudo
 sudo apt-get install -y vim
 
 # Remount /sys/fs/cgroup with read-write permissions
