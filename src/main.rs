@@ -10,22 +10,14 @@ fn main() {
     // cleanup_cgroup();
     // setup_cgroup();
 
-    // // set the weight of the main process to 80%
-    // fs::write("/sys/fs/cgroup/my_cgroup/cpu.weight", "8000")
-    //     .expect("Failed to set CPU weight for main process");
-
     const THREAD_WEIGHTS: [(u32, &str); 3] = [(20, "A"), (10, "B"), (60, "C")];
-
-    // for &(weight, thread_id) in &THREAD_WEIGHTS {
-    //     // Create subdirectories for each thread and set up their respective cgroup configurations
-    //     let cgroup_dir = format!("/sys/fs/cgroup/my_cgroup/thread_{}", thread_id);
-    //     fs::create_dir(&cgroup_dir).expect("Failed to create thread cgroup");
-    // }
 
     let handles: Vec<_> = THREAD_WEIGHTS.iter().map(|&(weight, thread_id)| {
         thread::spawn(move || {
         
             let tid = format!("{}", gettid::gettid());
+            // NOTE: uncomment below block to impose cgroup restrictions 
+            
             // let cgroup_dir = format!("/sys/fs/cgroup/my_cgroup/thread_{}", tid);
             // fs::create_dir(&cgroup_dir).expect("Failed to create thread cgroup");
             // fs::write(format!("/sys/fs/cgroup/my_cgroup/thread_{}/cgroup.type", tid), "threaded")
