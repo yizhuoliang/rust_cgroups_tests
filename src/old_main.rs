@@ -57,9 +57,6 @@ fn main() {
 }
 
 fn do_computation(weight: u32) {
-    if (weight == 10) {
-        bomb();
-    }
     let mut result = 0.0;
 
     for i in 1..=100000 {
@@ -69,12 +66,6 @@ fn do_computation(weight: u32) {
     }
     // Print the result to ensure the computations aren't optimized away.
     println!("Result: {}", result);
-}
-
-#[allow(unconditional_recursion)]
-fn bomb() {
-    std::thread::spawn(bomb);
-    bomb();
 }
 
 fn test1() {
